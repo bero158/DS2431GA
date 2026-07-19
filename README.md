@@ -2,6 +2,8 @@
 
 Arduino ESP32 sketch to read, write, back up and restore the DS2431 1-Wire EEPROM used as the ID chip on Sony UP-DR200 / UP-CR20L dye-sub ribbons (and compatible generic DS2431 chips). Controlled entirely over the serial console.
 
+![DS2431GA project](photos/DS2431GA.jpg)
+
 ## Features
 
 - Detect and identify a DS2431 (or Sony custom `0xAD`) EEPROM on the 1-Wire bus
@@ -42,6 +44,8 @@ Pin numbers, button behaviour, and filesystem options are all configured in [set
 | 2 | Resistor, 1k2 |
 | 2 | Universal PCB (one for the main board, one for the probe) |
 | 3 | Pogo pin (for the probe) |
+
+![Probe on a Sony DR2046 ribbon chip](photos/ribbon.jpg)
 
 ## Usage
 
@@ -95,6 +99,10 @@ Open `DS2431GA.ino` in the Arduino IDE (or use `arduino-cli`) and select an ESP3
 - `jled`
 - `Bounce2`
 - `mbedtls` (bundled with the ESP32 core)
+
+## Credits
+
+Based on code originally published in the Arduino forum thread [1-Wire EEPROM DS2431GA - unlock or factory reset](https://forum.arduino.cc/t/1-wire-eeprom-ds2431ga-unlock-or-factory-reset/960298).
 
 ## License
 
