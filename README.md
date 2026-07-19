@@ -79,18 +79,11 @@ The chip-detected LED lights whenever a DS2431 is present on the bus; the write 
 
 | Define | Purpose |
 |---|---|
-| `_DEBUG` (commented out) | Enable verbose debug logging via `LOG_DEBUG` |
-| `ENABLE_OTA` | Allow over-the-air firmware updates |
 | `ONE_WIRE_MAX_DEVICE` | Maximum number of 1-Wire devices expected on the bus |
 | `signalPin` | 1-Wire data GPIO (GPIO 4 on ESP32, `A4` otherwise) |
 | `ledChipDetectPin` | LED lit while a DS2431 is detected on the bus |
 | `ledWritePin` | LED lit while writing to the EEPROM |
 | `button1Pin` / `button2Pin` | GPIOs wired to the two push buttons |
-| `DIR_SEPARATOR` | Path separator used when building SPIFFS paths |
-| `FORMAT_SPIFFS_IF_FAILED` | Format SPIFFS automatically if mounting fails |
-| `LISTDIR` (commented out) | Print a SPIFFS directory listing at startup |
-| `LOG_INFO` / `LOG_WARN` / `LOG_ERR` / `LOG_DEBUG` | Log-forwarding macros to `eventLog` |
-| `LOG_TO_FILE` (commented out) | Mirror log output to a file |
 
 Uncomment/adjust the defines to match your board and desired behaviour before building.
 
