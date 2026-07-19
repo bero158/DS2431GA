@@ -1,0 +1,31 @@
+# Arduino build output
+build/
+*.hex
+*.bin
+*.elf
+*.eep
+*.map
+
+# Arduino CLI / IDE cache
+.cache/
+
+# C/C++ compiled objects
+*.o
+*.obj
+*.a
+*.so
+*.d
+
+# Editor / IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# testing data
+data/

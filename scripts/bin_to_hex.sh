@@ -1,0 +1,1 @@
+hexdump -x data.bin
