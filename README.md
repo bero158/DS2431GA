@@ -44,6 +44,7 @@ Pin numbers, button behaviour, and filesystem options are all configured in [set
 | 2 | Resistor, 1k2 |
 | 2 | Universal PCB (one for the main board, one for the probe) |
 | 3 | Pogo pin (for the probe) |
+| 1 | JST 2-pin connector, pair (male + female) |
 
 ![Probe on a Sony DR2046 ribbon chip](photos/ribbon.jpg)
 
