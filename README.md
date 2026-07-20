@@ -1,4 +1,4 @@
-# DS2431GA reader/programmer for Sony UP DR200 ribbon chip
+# DS2431GA reader/programmer for Sony UP DR200 printer ribbon chip
 
 Arduino ESP32 sketch to read, write, back up and restore the DS2431 1-Wire EEPROM used as the ID chip on Sony UP-DR200 / UP-CR20L dye-sub ribbons (and compatible generic DS2431 chips). Controlled entirely over the serial console.
 
