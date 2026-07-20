@@ -32,6 +32,7 @@ Developed and tested on a **LOLIN D32 PRO** (ESP32).
 Connect the DS2431 data line to the configured 1-Wire pin with a pull-up resistor to 3V3 (ESP32) or 5V (Uno), and ground.
 
 Pin numbers, button behaviour, and filesystem options are all configured in [settings.h](settings.h) — see below.
+The schematics is [here](schematic/DS2431GA.png)
 
 ### Bill of materials
 
