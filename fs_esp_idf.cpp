@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <esp_spiffs.h>
+#include "settings.h"
 
 File::File(const String &path, const char *mode) { f_ = fopen(path.c_str(), mode); }
 File::~File() { close(); }
@@ -29,7 +30,7 @@ void File::close() {
 
 bool Filesystem::mount(boolean format_if_mount_failed) {
     esp_vfs_spiffs_conf_t conf = {
-        .base_path = "/spiffs",
+        .base_path = SPIFFS_FOLDER,
         .partition_label = NULL,
         .max_files = 5,
         .format_if_mount_failed = format_if_mount_failed

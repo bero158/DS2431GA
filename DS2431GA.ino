@@ -12,8 +12,6 @@
 #include "system.h"
 #include "cpuTimer.h"
 #include <mbedtls/base64.h>
-#define SPIFFS_FOLDER "/spiffs"
-#define BACKUP_FOLDER "/spiffs/backup"
 PushButton button1;
 PushButton button2;
 Filesystem fs;
@@ -73,7 +71,7 @@ void setup(void)
   menu();
 }
 
-void dir(String root = "/spiffs") {
+void dir(String root = SPIFFS_FOLDER) {
    if (fs.mount()) {
     Serial.println("Directory listing of SPIFFS filesystem:");
     for (const auto &entry : Dir::ls(root))
@@ -580,7 +578,7 @@ void serialEvent()
 void format() {
         Serial.println("Formatting SPIFFS filesystem...");
       if (fs.format()) {
-        Dir::md("/spiffs");
+        Dir::md(SPIFFS_FOLDER);
         Dir::md(BACKUP_FOLDER);
         Serial.println("SPIFFS filesystem formatted successfully.");
       } else {

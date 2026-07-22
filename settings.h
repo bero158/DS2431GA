@@ -5,6 +5,9 @@
 
 #define ONE_WIRE_MAX_DEVICE 1 //max count. of Dallas devices
 
+#define SPIFFS_FOLDER "/spiffs"
+#define BACKUP_FOLDER "/spiffs/backup"
+
 //Pins definition
 #if defined(ARDUINO_ARCH_ESP32)
     const int signalPin = 4; // 1-Wire data GPIO on ESP32
