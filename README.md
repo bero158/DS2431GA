@@ -77,6 +77,21 @@ Menu:
     k - delete SPIFFS file
     m - print menu
 ```
+Example of the result (menu function 'o - parse Sony ribbon tag'):
+```
+ADDR= AD:A9:A7:51:00:10:01:C0
+Device is a Sony DS custom EEPROM.
+
+Part      : UPC-R204
+Sub code  : 210
+Spec date : 2011-02-25
+Lot date  : 2015-12-24
+Serial    : 224938000103482
+Batch     : AKT441
+Capacity  : 700
+Remaining : 8 (1%)
+Used      : 692
+```
 
 Type the letter for a command and, if prompted, follow up with the requested value terminated by Enter (Esc or Ctrl+C cancels a pending command). Commands `w`, `t`, `p`, `u`, `k`, and `s` operate on files inside `/spiffs/backup` (or `/spiffs` for `k`) and print a directory listing to help you pick a filename.
 

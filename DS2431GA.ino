@@ -17,7 +17,6 @@
 PushButton button1;
 PushButton button2;
 Filesystem fs;
-boolean toggleSignalPin = false;
 boolean chipDetected = false;
 
 OneWire ds(signalPin); // 1-wire on the configured data pin
@@ -46,7 +45,7 @@ String printAddress(byte *address, String delimitor = ":" )
 void setup(void)
 {
   Serial.begin(115200);
-  Serial.println("DS2431 EEPROM Reader/Writer ver. " + String(VERSION));
+  Serial.println("DS2431 EEPROM Reader/Writer ver. " + String(VERSION) + " build: " + String(BUILD_DATE));
   Serial.println("EEPROM size: " + String(DS2431_MEM_SIZE) + " bytes");
   Serial.println("1-Wire data pin: " + String(signalPin));
 
@@ -221,36 +220,7 @@ boolean SearchAddress(byte *address)
 
 
 
-void ReadAllMemBytes()
-{
-  Serial.println("Reading from EEPROM as chars");
-  ds2431.ReadStart();
-  for (int row = 0; row < 16; row++)
-  { // EEPROM has 16 rows of 8 bytes
-    Serial.print(row);
-    if (row < 10)
-    {
-      Serial.print("  ");
-    }
-    else
-    {
-      Serial.print(" ");
-    }
-    for (int B = 0; B < 8; B++)
-    { // load eight bytes at a time
-      byte c = ds.read();
-      if (c > 32)
-      {
-        Serial.print(char(c));
-      }
-      else
-      {
-        Serial.print(" ");
-      }
-    }
-    Serial.println();
-  }
-}
+
 
 void printHex(const byte *data)
 {
