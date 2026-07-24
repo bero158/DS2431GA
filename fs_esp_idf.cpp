@@ -4,8 +4,24 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <esp_spiffs.h>
-#include <fnmatch.h>
 #include "settings.h"
+
+// ESP32's newlib declares fnmatch() in <fnmatch.h> but doesn't link it, so
+// implement the small subset ('*' and '?') that Dir::ls patterns need.
+static bool matchesPattern(const char *pattern, const char *name) {
+    if (*pattern == '\0') return *name == '\0';
+    if (*pattern == '*') {
+        while (*pattern == '*') pattern++;
+        if (*pattern == '\0') return true;
+        for (; *name != '\0'; name++) {
+            if (matchesPattern(pattern, name)) return true;
+        }
+        return false;
+    }
+    if (*name == '\0') return false;
+    if (*pattern == '?' || *pattern == *name) return matchesPattern(pattern + 1, name + 1);
+    return false;
+}
 
 File::File(const String &path, const char *mode) { f_ = fopen(path.c_str(), mode); }
 File::~File() { close(); }
@@ -69,7 +85,7 @@ std::vector<String> Dir::ls(const String &path) {
     
     if (DIR *d = opendir(dir.c_str())) {
         while (dirent *e = readdir(d)) {
-            if (fnmatch(pattern.c_str(), e->d_name, 0) == 0) {
+            if (matchesPattern(pattern.c_str(), e->d_name)) {
                 out.push_back(e->d_name);
             }
         }
