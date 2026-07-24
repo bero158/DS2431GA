@@ -24,10 +24,9 @@ DS2431 ds2431(ds, addr);
 JLed chipDetectedLED = JLed(ledChipDetectPin);
 JLed writeLED = JLed(ledWritePin);
 JLed watchdogLED = JLed(LED_BUILTIN).Blink(2000, 200).Forever();
-cpuTimer detectChipTimer = cpuTimer(1000, true, true); //when user clicked up/down btns show preset temp for X seconds
+cpuTimer detectChipTimer = cpuTimer(1000, true, true); // when user clicked up/down btns show preset temp for X seconds
 
-
-String printAddress(byte *address, String delimitor = ":" )
+String printAddress(byte *address, String delimitor = ":")
 {
   int i;
   String out = "";
@@ -38,6 +37,23 @@ String printAddress(byte *address, String delimitor = ":" )
     out += buffer + (i < 7 ? delimitor : "");
   }
   return out;
+}
+
+void error(boolean set, const String &message = "")
+{
+  Serial.println("Error: " + message);
+  if (message.length() > 0)
+  {
+    Serial.println("Error: " + message);
+  }
+  if (set)
+  {
+    watchdogLED.Blink(200, 200).Forever();
+  }
+  else
+  {
+    watchdogLED.Blink(2000, 200).Forever();
+  }
 }
 
 void setup(void)
@@ -52,15 +68,13 @@ void setup(void)
   button2.interval(30);
   button2.attach(button2Pin, INPUT);
 
-  
   if (!fs.mount(false))
   {
     Serial.println("Failed to mount SPIFFS filesystem");
     format();
     if (!fs.mount(false))
     {
-      Serial.println("Failed to mount SPIFFS filesystem after formatting");
-      watchdogLED.Blink(200, 200).Forever();
+      error(true, "Failed to mount SPIFFS filesystem");
     }
   }
   else
@@ -71,8 +85,10 @@ void setup(void)
   menu();
 }
 
-void dir(String root = SPIFFS_FOLDER) {
-   if (fs.mount()) {
+void dir(String root = SPIFFS_FOLDER)
+{
+  if (fs.mount())
+  {
     Serial.println("Directory listing of SPIFFS filesystem:");
     for (const auto &entry : Dir::ls(root))
     {
@@ -81,8 +97,10 @@ void dir(String root = SPIFFS_FOLDER) {
     fs.unmount();
   }
 }
-void rmFile(String file) {
-   if (fs.mount()) {
+void rmFile(String file)
+{
+  if (fs.mount())
+  {
     Serial.println("Removing file: " + file);
     Dir::rm(file);
     fs.unmount();
@@ -95,7 +113,7 @@ void menu(void)
   Serial.println("    e - erase memory");
   Serial.println("    h - read memory as hexadecimal");
   Serial.println("    b - backup memory to SPIFFS file");
-  Serial.println("    w - recovery memory from SPIFFS file");
+  Serial.println("    w - restore memory from SPIFFS file");
   Serial.println("    t - read backup as hexadecimal");
   Serial.println("    u - read backup as base64 (for download)");
   Serial.println("    s - store base64 data as SPIFFS backup file");
@@ -113,8 +131,37 @@ void menu(void)
   Serial.println("    m - print menu");
   Serial.println("Press a key to select an option");
 }
-
-
+void backup()
+{
+  Serial.println("Backup ...");
+  if (SearchAddress(addr))
+  {
+    uint8_t buffer[DS2431_MEM_SIZE];
+    ds2431.ReadMemory(buffer, DS2431_MEM_SIZE);
+    SonyRibbonTag tag(buffer);
+    if (fs.mount())
+    {
+      uint16_t remaining = tag.remaining();
+      String filename = String(BACKUP_FOLDER) + "/" + printAddress(addr, "") + ((remaining > 0) ? "_" + String(remaining) : "") + ".bin";
+      File file(filename, "wb");
+      if (file)
+      {
+        file.write(buffer, DS2431_MEM_SIZE);
+        file.close();
+        Serial.println("Backup saved to " + filename);
+      }
+      else
+      {
+        error(true, "Failed to open file for writing: " + filename);
+      }
+      fs.unmount();
+    }
+    else
+    {
+      error(true, "Failed to mount SPIFFS filesystem");
+    }
+  }
+}
 
 void loop(void)
 {
@@ -126,41 +173,47 @@ void loop(void)
   {
 
   case PushButton::press::shortpress:
-  Serial.println("Button 1 short press");
+    Serial.println("Button 1 short press");
+    backup();
     break;
   case PushButton::press::longpress:
     Serial.println("Button 1 long press");
-    Serial.println("Rebooting ...");
-    systemFNC::restart("User requested reboot");
+    for (const String &filename : Dir::ls(String(BACKUP_FOLDER) + "/*.bin"))
+    {
+      restore(filename);
+      break;
+    }
     break;
   }
-switch (button2.update())
+  switch (button2.update())
   {
   case PushButton::press::shortpress:
-  Serial.println("Button 2 short press");
+    Serial.println("Button 2 short press");
     writeLED.On();
     break;
   case PushButton::press::longpress:
     Serial.println("Button 2 long press");
     break;
   }
-  if (detectChipTimer.isOverTime()) 
+  if (detectChipTimer.isOverTime())
   {
     if (ds2431.SearchAddress(addr))
     {
       chipDetectedLED.On();
-      if ( !chipDetected ) {
+      if (!chipDetected)
+      {
         Serial.println("Detected DS2431 EEPROM with address: " + printAddress(addr));
         menu();
       }
       chipDetected = true;
-    } else {
+    }
+    else
+    {
       chipDetectedLED.Off();
       chipDetected = false;
     }
   }
 }
-
 
 void writeString(const String &text)
 {
@@ -182,7 +235,6 @@ void writeString(const String &text)
   Serial.println("Done");
 }
 
-
 boolean SearchAddress(byte *address)
 { // Search for address and confirm it
   if (!ds2431.SearchAddress(address))
@@ -195,7 +247,7 @@ boolean SearchAddress(byte *address)
 
   if (OneWire::crc8(address, 7) != address[7])
   {
-    Serial.println("CRC is not valid, address is corrupted");
+    error(true, "CRC is not valid, address is corrupted");
     return false;
   }
 
@@ -208,21 +260,18 @@ boolean SearchAddress(byte *address)
     Serial.println("Device is a DS2431 EEPROM.");
     break;
   default:
-    Serial.println("Device is not a DS2431 EEPROM.");
+    error(true, "Device is not a DS2431 EEPROM.");
     return false;
   }
 
   Serial.println();
+  error(false);
   return true;
 }
 
-
-
-
-
 void printHex(const byte *data)
 {
-  for (int row = 0; row < DS2431_MEM_SIZE/DS2431_SCRATCH_SIZE; row++)
+  for (int row = 0; row < DS2431_MEM_SIZE / DS2431_SCRATCH_SIZE; row++)
   { // EEPROM has 16 rows of 8 bytes
     Serial.print(row);
     if (row < 10)
@@ -252,7 +301,7 @@ void ReadAllMemHex()
   { // EEPROM has 16 rows of 8 bytes
     data[i] = ds.read();
   }
-  
+
   printHex(data);
 }
 
@@ -275,40 +324,55 @@ boolean readBackupFile(const String &filename, byte *buffer)
   boolean ret = false;
   String trimmed = filename;
   trimmed.trim();
-  if (fs.mount()) {
+  if (fs.mount())
+  {
     File file(trimmed, "rb");
-    if (file) {
+    if (file)
+    {
       size_t bytesRead = file.read(buffer, DS2431_MEM_SIZE);
-      if (bytesRead == DS2431_MEM_SIZE) {
+      if (bytesRead == DS2431_MEM_SIZE)
+      {
         ret = true;
-      } else {
-        Serial.println("Failed to read enough data from file: " + filename);
+      }
+      else
+      {
+        error(true, "Failed to read enough data from file: " + filename);
       }
       file.close();
-    } else {
-      Serial.println("Failed to open file for reading: " + filename);
+    }
+    else
+    {
+      error(true, "Failed to open file for reading: " + filename);
     }
     fs.unmount();
-  } else {
-    Serial.println("Failed to mount SPIFFS filesystem");
+  }
+  else
+  {
+    error(true, "Failed to mount SPIFFS filesystem");
   }
   return ret;
 }
 
-void recovery(const String &filename)
+void restore(const String &filename)
 {
-  if (SearchAddress(addr)) {
+  writeLED.On();
+  Serial.println("Restoring from backup file: " + filename);
+  if (SearchAddress(addr))
+  {
     byte buffer[DS2431_MEM_SIZE];
-    if (readBackupFile(filename, buffer)) {
-          ds2431.Write(buffer);
-          Serial.println("Memory recovered from " + filename);
-        }
+    if (readBackupFile(filename, buffer))
+    {
+      ds2431.Write(buffer);
+      Serial.println("Memory recovered from " + filename);
+    }
   }
+  writeLED.Off();
 }
 void readFileHex(const String &filename)
 {
   byte buffer[DS2431_MEM_SIZE];
-  if (readBackupFile(filename, buffer)) {
+  if (readBackupFile(filename, buffer))
+  {
     printHex(buffer);
   }
 }
@@ -317,33 +381,42 @@ void writeFileBase64(const String &filename, const String &base64Data)
   byte buffer[DS2431_MEM_SIZE];
   size_t olen;
   int ret = mbedtls_base64_decode(buffer, sizeof(buffer), &olen, (const unsigned char *)base64Data.c_str(), base64Data.length());
-  if (ret != 0) {
+  if (ret != 0)
+  {
     Serial.println("Failed to decode base64 data");
     return;
   }
-  if (olen != DS2431_MEM_SIZE) {
+  if (olen != DS2431_MEM_SIZE)
+  {
     Serial.println("Decoded data size does not match expected EEPROM size");
     return;
   }
 
-  if (fs.mount()) {
+  if (fs.mount())
+  {
     File file(filename, "wb");
-    if (file) {
+    if (file)
+    {
       file.write(buffer, DS2431_MEM_SIZE);
       file.close();
       Serial.println("Base64 data written to " + filename);
-    } else {
+    }
+    else
+    {
       Serial.println("Failed to open file for writing: " + filename);
     }
     fs.unmount();
-  } else {
+  }
+  else
+  {
     Serial.println("Failed to mount SPIFFS filesystem");
   }
 }
 void readFileBase64(const String &filename)
 {
   byte buffer[DS2431_MEM_SIZE];
-  if (readBackupFile(filename, buffer)) {
+  if (readBackupFile(filename, buffer))
+  {
     char encoded[DS2431_MEM_SIZE * 2]; // Base64 encoded size
     size_t olen;
     mbedtls_base64_encode((unsigned char *)encoded, sizeof(encoded), &olen, buffer, DS2431_MEM_SIZE);
@@ -375,14 +448,14 @@ void clearCommand()
 void serialEvent()
 {
   byte inChar;
-  String filename  = "";
+  String filename = "";
   while (Serial.available())
   {
     // get the new byte:
     inChar = (byte)Serial.read();
     if (command)
     {
-      if ((inChar == '\n' || inChar == '\r') && inputBuffer.length() == 0) 
+      if ((inChar == '\n' || inChar == '\r') && inputBuffer.length() == 0)
       {
         // ignore empty lines
         continue;
@@ -399,7 +472,7 @@ void serialEvent()
         switch (command)
         {
         case 'a':
-        
+
           int copies;
           copies = inputBuffer.toInt();
           if (copies <= 0 || copies > 700)
@@ -421,34 +494,37 @@ void serialEvent()
           break;
         case 'w':
           filename = String(BACKUP_FOLDER) + "/" + inputBuffer;
-          recovery(filename);
+          restore(filename);
           break;
         case 't':
           filename = String(BACKUP_FOLDER) + "/" + inputBuffer;
           readFileHex(filename);
-          break;  
+          break;
         case 'p':
           filename = String(BACKUP_FOLDER) + "/" + inputBuffer;
           byte buffer[DS2431_MEM_SIZE];
           readBackupFile(filename, buffer);
           parseBuffer(buffer);
-          break;  
+          break;
         case 'u':
           filename = String(BACKUP_FOLDER) + "/" + inputBuffer;
           readFileBase64(filename);
           break;
-         case 'k':
+        case 'k':
           filename = String(SPIFFS_FOLDER) + "/" + inputBuffer;
           rmFile(filename);
           break;
         case 's':
-          //separate filename and base64 data by space
+          // separate filename and base64 data by space
           int spaceIndex = inputBuffer.indexOf(' ');
-          if (spaceIndex != -1) {
+          if (spaceIndex != -1)
+          {
             filename = String(BACKUP_FOLDER) + "/" + inputBuffer.substring(0, spaceIndex);
             String base64Data = inputBuffer.substring(spaceIndex + 1);
             writeFileBase64(filename, base64Data);
-          } else {
+          }
+          else
+          {
             Serial.println("Invalid input. Please provide filename followed by base64 data separated by space.");
           }
           break;
@@ -473,7 +549,6 @@ void serialEvent()
         }
         break;
 
-      
       case 'h':
         if (SearchAddress(addr))
         {
@@ -489,29 +564,7 @@ void serialEvent()
         break;
 
       case 'b':
-        if (SearchAddress(addr))
-        {
-          uint8_t buffer[DS2431_MEM_SIZE];
-          ds2431.ReadMemory(buffer, DS2431_MEM_SIZE);
-          SonyRibbonTag tag(buffer);
-          if (fs.mount()) {
-            String filename = String(BACKUP_FOLDER) + "/" + printAddress(addr, "") + "_" + String(tag.remaining()) + ".bin";
-            File file(filename, "wb");
-            if (file)
-            {
-              file.write(buffer, DS2431_MEM_SIZE);
-              file.close();
-              Serial.println("Backup saved to " + filename);
-            }
-            else
-            {
-              Serial.println("Failed to open file for writing: " + filename);
-            }
-            fs.unmount();
-          } else {
-            Serial.println("Failed to mount SPIFFS filesystem");
-          }
-        }
+        backup();
         break;
 
       case 's':
@@ -552,7 +605,7 @@ void serialEvent()
         dir();
         break;
 
-        case 'm':
+      case 'm':
         menu();
         break;
 
@@ -568,27 +621,34 @@ void serialEvent()
         Serial.println("How many copies?");
         break;
       case 'f':
-      format();
-      break;
+        format();
+        break;
       }
     }
   }
 }
 
-void format() {
-        Serial.println("Formatting SPIFFS filesystem...");
-      if (fs.format()) {
-        Dir::md(SPIFFS_FOLDER);
-        Dir::md(BACKUP_FOLDER);
-        Serial.println("SPIFFS filesystem formatted successfully.");
-      } else {
-        Serial.println("Failed to format SPIFFS filesystem.");
-      }
+void format()
+{
+  writeLED.On();
+
+  Serial.println("Formatting SPIFFS filesystem...");
+  if (fs.format())
+  {
+    Dir::md(SPIFFS_FOLDER);
+    Dir::md(BACKUP_FOLDER);
+    Serial.println("SPIFFS filesystem formatted successfully.");
+  }
+  else
+  {
+    error(true, "Failed to format SPIFFS filesystem.");
+  }
+  writeLED.Off();
 }
 void parseBuffer(byte *buffer)
 {
-    SonyRibbonTag tag(buffer);
-    Serial.println(tag.toString());
+  SonyRibbonTag tag(buffer);
+  Serial.println(tag.toString());
 }
 
 void parse()

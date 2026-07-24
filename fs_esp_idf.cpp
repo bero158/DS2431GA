@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <esp_spiffs.h>
+#include <fnmatch.h>
 #include "settings.h"
 
 File::File(const String &path, const char *mode) { f_ = fopen(path.c_str(), mode); }
@@ -62,8 +63,16 @@ bool Dir::rm(const String &file) {
 
 std::vector<String> Dir::ls(const String &path) {
     std::vector<String> out;
-    if (DIR *d = opendir(path.c_str())) {
-        while (dirent *e = readdir(d)) out.push_back(e->d_name);
+    size_t lastSlash = path.lastIndexOf('/');
+    String dir = (lastSlash != -1) ? path.substring(0, lastSlash + 1) : String("./");
+    String pattern = (lastSlash != -1) ? path.substring(lastSlash + 1) : path;
+    
+    if (DIR *d = opendir(dir.c_str())) {
+        while (dirent *e = readdir(d)) {
+            if (fnmatch(pattern.c_str(), e->d_name, 0) == 0) {
+                out.push_back(e->d_name);
+            }
+        }
         closedir(d);
     }
     return out;
